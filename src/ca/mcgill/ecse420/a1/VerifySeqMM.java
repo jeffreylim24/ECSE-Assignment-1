@@ -7,39 +7,84 @@ public class VerifySeqMM {
 
   /** Runs the identity, zero and hand-computed matrix tests and prints whether each passed. */
   public static void main(String[] args) {
+    
+    final int[] sizes = {1, 2, 3, 4, 5, 10, 100};
+    
     // Identity matrix test
-    double[][] identityMatrix = identity(3);
-    double[][] randomMatrix = generateRandomMatrix(3, 3);
-    double[][] result1 =
-        MatrixMultiplication.sequentialMultiplyMatrix(randomMatrix, identityMatrix);
-    double[][] result2 =
-        MatrixMultiplication.sequentialMultiplyMatrix(identityMatrix, randomMatrix);
-    if (Arrays.deepEquals(result1, randomMatrix) && Arrays.deepEquals(result2, randomMatrix)) {
-      System.out.println("✅ Identity matrix test passed.");
-    } else {
-      System.out.println("❌ Identity matrix test failed.");
+    for (int n : sizes) {
+      if (identityMatrixTest(n)) {
+        System.out.println("✅ Identity matrix test passed for size " + n);
+      } else {
+        System.out.println("❌ Identity matrix test failed for size " + n);
+      }
     }
 
     // Zero matrix test
-    double[][] zeroMatrix = new double[3][3];
-    double[][] result3 = MatrixMultiplication.sequentialMultiplyMatrix(randomMatrix, zeroMatrix);
-    double[][] result4 = MatrixMultiplication.sequentialMultiplyMatrix(zeroMatrix, randomMatrix);
-    if (Arrays.deepEquals(result3, zeroMatrix) && Arrays.deepEquals(result4, zeroMatrix)) {
-      System.out.println("✅ Zero matrix test passed.");
-    } else {
-      System.out.println("❌ Zero matrix test failed.");
+    for (int n : sizes) {
+      if (zeroMatrixTest(n)) {
+        System.out.println("✅ Zero matrix test passed for size " + n);
+      } else {
+        System.out.println("❌ Zero matrix test failed for size " + n);
+      }
     }
 
     // Non-square Hand computed test
     double[][] a = {{1, 2, 3}, {4, 5, 6}};
     double[][] b = {{1, 2}, {3, 4}, {5, 6}};
-    double[][] expected = {{22, 28}, {49, 64}};
-    double[][] result = MatrixMultiplication.sequentialMultiplyMatrix(a, b);
-    if (Arrays.deepEquals(result, expected)) {
-      System.out.println("✅ Non-square Hand computed test passed.");
+    double[][] expectedAB = {{22, 28}, {49, 64}};
+    double[][] expectedBA = {{9, 12, 15}, {19, 26, 33}, {29, 40, 51}};
+    if (preCalculatedTest(a, b, expectedAB)) {
+      System.out.println("✅ Hand-computed test passed for A*B");
     } else {
-      System.out.println("❌ Non-square Hand computed test failed.");
+      System.out.println("❌ Hand-computed test failed for A*B");
     }
+    if (preCalculatedTest(b, a, expectedBA)) {
+      System.out.println("✅ Hand-computed test passed for B*A");
+    } else {
+      System.out.println("❌ Hand-computed test failed for B*A");
+    }
+  }
+
+  /**
+   * Tests that multiplying a random matrix by an identity matrix returns the original matrix.
+   * @param n the size of the identity matrix
+   * @return true if the test passes, false otherwise
+   */
+  private static boolean identityMatrixTest(int n) {
+    double[][] identityMatrix = identity(n);
+    double[][] randomMatrix = generateRandomMatrix(n, n);
+    double[][] result1 =
+        MatrixMultiplication.sequentialMultiplyMatrix(randomMatrix, identityMatrix);
+    double[][] result2 =
+        MatrixMultiplication.sequentialMultiplyMatrix(identityMatrix, randomMatrix);
+    return Arrays.deepEquals(result1, randomMatrix) && Arrays.deepEquals(result2, randomMatrix);
+  }
+  
+  /**
+   * Tests that multiplying a random matrix by a zero matrix returns a zero matrix.
+   * @param n the size of the zero matrix
+   * @return true if the test passes, false otherwise
+   */
+  private static boolean zeroMatrixTest(int n) {
+    double[][] zeroMatrix = new double[n][n];
+    double[][] randomMatrix = generateRandomMatrix(n, n);
+    double[][] result1 =
+        MatrixMultiplication.sequentialMultiplyMatrix(randomMatrix, zeroMatrix);
+    double[][] result2 =
+        MatrixMultiplication.sequentialMultiplyMatrix(zeroMatrix, randomMatrix);
+    return Arrays.deepEquals(result1, zeroMatrix) && Arrays.deepEquals(result2, zeroMatrix);
+  }
+
+  /**
+   * Tests that multiplying two matrices returns the expected result.
+   * @param a
+   * @param b
+   * @param expected
+   * @return true if the test passes, false otherwise
+   */
+  private static boolean preCalculatedTest(double[][] a, double[][] b, double[][] expected) {
+    double[][] result = MatrixMultiplication.sequentialMultiplyMatrix(a, b);
+    return Arrays.deepEquals(result, expected);
   }
 
   /**
