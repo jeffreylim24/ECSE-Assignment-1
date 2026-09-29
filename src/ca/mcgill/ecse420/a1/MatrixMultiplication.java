@@ -18,15 +18,37 @@ public class MatrixMultiplication {
 	}
 	
 	/**
-	 * Returns the result of a sequential matrix multiplication
-	 * The two matrices are randomly generated
-	 * @param a is the first matrix
-	 * @param b is the second matrix
-	 * @return the result of the multiplication
-	 * */
-	public static double[][] sequentialMultiplyMatrix(double[][] a, double[][] b) {
-		
-	}
+   * Returns the result of a sequential matrix multiplication.
+   * The two matrices are randomly generated.
+   *
+   * @param a is the first matrix
+   * @param b is the second matrix
+   * @return the result of the multiplication
+   */
+  public static double[][] sequentialMultiplyMatrix(double[][] a, double[][] b) {
+    int rowsA = a.length;
+    int colsA = a[0].length;
+    int rowsB = b.length;
+    int colsB = b[0].length;
+
+    if (colsA != rowsB) {
+      throw new IllegalArgumentException(
+          "Cannot multiply: a is " + rowsA + "x" + colsA + ", b is " + rowsB + "x" + colsB);
+    }
+
+    double[][] c = new double[rowsA][colsB];
+
+    for (int i = 0; i < rowsA; i++) {
+      for (int j = 0; j < colsB; j++) {
+        double sum = 0.0;
+        for (int k = 0; k < colsA; k++) {
+          sum += a[i][k] * b[k][j];
+        }
+        c[i][j] = sum;
+      }
+    }
+    return c;
+  }
 	
 	/**
 	 * Returns the result of a concurrent matrix multiplication
