@@ -2,10 +2,11 @@ package ca.mcgill.ecse420.a1;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class MatrixMultiplication {
 	
-	private static final int NUMBER_THREADS = 1;
+	private static final int NUMBER_THREADS = 4;
 	private static final int MATRIX_SIZE = 2000;
 
 	public static void main(String[] args) {
@@ -51,16 +52,98 @@ public class MatrixMultiplication {
     }
     return c;
   }
-	
-	/**
-	 * Returns the result of a concurrent matrix multiplication
-	 * The two matrices are randomly generated
-	 * @param a is the first matrix
-	 * @param b is the second matrix
-	 * @return the result of the multiplication
-	 * */
+
+  /**
+   * Returns the result of a concurrent matrix multiplication using NUMBER_THREADS threads.
+   * The two matrices are randomly generated.
+   *
+   * @param a is the first matrix
+   * @param b is the second matrix
+   * @return the result of the multiplication
+   */
   public static double[][] parallelMultiplyMatrix(double[][] a, double[][] b) {
-    return null;
+    return parallelMultiplyMatrix(a, b, NUMBER_THREADS);
+  }
+
+  /**
+   * Returns the result of a concurrent matrix multiplication using the given number of
+   * threads. The rows of the result matrix are split into numThreads contiguous blocks,
+   * and each block is computed by one task running in a fixed-size thread pool.
+   *
+   * @param a is the first matrix
+   * @param b is the second matrix
+   * @param numThreads number of threads in the pool (and number of row blocks)
+   * @return the result of the multiplication
+   */
+  public static double[][] parallelMultiplyMatrix(double[][] a, double[][] b, int numThreads) {
+    int rowsA = a.length;
+    int colsA = a[0].length;
+    int rowsB = b.length;
+    int colsB = b[0].length;
+
+    if (colsA != rowsB) {
+      throw new IllegalArgumentException(
+          "Cannot multiply: a is " + rowsA + "x" + colsA + ", b is " + rowsB + "x" + colsB);
+    }
+    if (numThreads < 1) {
+      throw new IllegalArgumentException("Number of threads must be at least 1");
+    }
+
+    // Shared result matrix. Each task writes only to its own rows, so no locking is needed.
+    double[][] c = new double[rowsA][colsB];
+
+    ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+    for (int t = 0; t < numThreads; t++) {
+      // Split the rows as evenly as possible: block sizes differ by at most one row.
+      int startRow = t * rowsA / numThreads;
+      int endRow = (t + 1) * rowsA / numThreads;
+      executor.execute(new RowBlockTask(a, b, c, startRow, endRow));
+    }
+
+    // Stop accepting new tasks, then block until every submitted task has finished.
+    executor.shutdown();
+    try {
+      executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+    } catch (InterruptedException e) {
+      throw new RuntimeException("Interrupted while waiting for multiplication tasks", e);
+    }
+    return c;
+  }
+
+  /**
+   * Task that computes rows startRow (inclusive) to endRow (exclusive) of c = a * b.
+   * It only reads a and b, and only writes to its own rows of c.
+   */
+  private static class RowBlockTask implements Runnable {
+    private final double[][] a;
+    private final double[][] b;
+    private final double[][] c;
+    private final int startRow;
+    private final int endRow;
+
+    RowBlockTask(double[][] a, double[][] b, double[][] c, int startRow, int endRow) {
+      this.a = a;
+      this.b = b;
+      this.c = c;
+      this.startRow = startRow;
+      this.endRow = endRow;
+    }
+
+    @Override
+    public void run() {
+      int colsA = a[0].length;
+      int colsB = b[0].length;
+      // Same dot-product loop as the sequential version, restricted to this task's rows
+      for (int i = startRow; i < endRow; i++) {
+        for (int j = 0; j < colsB; j++) {
+          double sum = 0.0;
+          for (int k = 0; k < colsA; k++) {
+            sum += a[i][k] * b[k][j];
+          }
+          c[i][j] = sum;
+        }
+      }
+    }
   }
 
 	/**
