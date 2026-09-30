@@ -12,12 +12,15 @@ public class MatrixMultiplication {
 	public static void main(String[] args) {
 		
     validateSequential();
+    validateParallel();
+
+    // Commented out to avoid long runtime during validation. Uncomment to run as needed.
 
 		// Generate two random matrices, same size
-		double[][] a = generateRandomMatrix(MATRIX_SIZE, MATRIX_SIZE);
-		double[][] b = generateRandomMatrix(MATRIX_SIZE, MATRIX_SIZE);
-		sequentialMultiplyMatrix(a, b);
-		parallelMultiplyMatrix(a, b);	
+		// double[][] a = generateRandomMatrix(MATRIX_SIZE, MATRIX_SIZE);
+		// double[][] b = generateRandomMatrix(MATRIX_SIZE, MATRIX_SIZE);
+		// sequentialMultiplyMatrix(a, b);
+		// parallelMultiplyMatrix(a, b);	
 	}
 	
 	/**
@@ -72,7 +75,8 @@ public class MatrixMultiplication {
    *
    * @param a is the first matrix
    * @param b is the second matrix
-   * @param numThreads number of threads in the pool (and number of row blocks)
+   * @param numThreads number of threads in the pool (and number of row blocks), capped at
+   *     the number of rows of a
    * @return the result of the multiplication
    */
   public static double[][] parallelMultiplyMatrix(double[][] a, double[][] b, int numThreads) {
@@ -88,6 +92,8 @@ public class MatrixMultiplication {
     if (numThreads < 1) {
       throw new IllegalArgumentException("Number of threads must be at least 1");
     }
+    // No point creating more threads than there are rows to compute
+    numThreads = Math.min(numThreads, rowsA);
 
     // Shared result matrix. Each task writes only to its own rows, so no locking is needed.
     double[][] c = new double[rowsA][colsB];
@@ -191,6 +197,68 @@ public class MatrixMultiplication {
       threw = true;
     }
     printResult("Rejects 2x3 * 2x3", threw);
+  }
+
+  /**
+   * Validates parallelMultiplyMatrix. First reruns the known-answer cases used for the
+   * sequential method, then compares the parallel result against the (already validated)
+   * sequential result on random matrices, for several thread counts and repeated trials.
+   * Prints PASS or FAIL for each case.
+   */
+  private static void validateParallel() {
+    // Case 1: same hand-computed example as the sequential test. With the default
+    // NUMBER_THREADS (4) and only 2 rows, the thread count is capped at 2.
+    double[][] a = {{1, 2, 3}, {4, 5, 6}};
+    double[][] b = {{7, 8}, {9, 10}, {11, 12}};
+    double[][] expected = {{58, 64}, {139, 154}};
+    printResult("Parallel: hand-computed 2x3 * 3x2",
+        matricesEqual(parallelMultiplyMatrix(a, b), expected));
+
+    // Case 2: identity and zero matrices
+    double[][] random = generateRandomMatrix(50, 50);
+    double[][] identity = generateIdentityMatrix(50);
+    double[][] zero = new double[50][50];
+    printResult("Parallel: A * I = A",
+        matricesEqual(parallelMultiplyMatrix(random, identity), random));
+    printResult("Parallel: I * A = A",
+        matricesEqual(parallelMultiplyMatrix(identity, random), random));
+    printResult("Parallel: A * 0 = 0",
+        matricesEqual(parallelMultiplyMatrix(random, zero), zero));
+
+    // Case 3: incompatible dimensions must be rejected
+    boolean threw = false;
+    try {
+      parallelMultiplyMatrix(new double[2][3], new double[2][3]);
+    } catch (IllegalArgumentException e) {
+      threw = true;
+    }
+    printResult("Parallel: rejects 2x3 * 2x3", threw);
+
+    // Case 4: compare against the sequential result on random matrices.
+    // 101 rows is prime, so it does not divide evenly by any thread count above 1,
+    // which checks that no row is skipped or assigned to two blocks. 16 threads on a
+    // 7-row matrix checks that capping the thread count at the number of rows still
+    // gives the correct result.
+    // Each configuration is repeated because a race condition may not show up every run.
+    int trials = 20;
+    int[] threadCounts = {1, 2, 3, 4, 7, 16};
+    int[][] shapes = {{101, 101, 101}, {37, 53, 29}, {7, 5, 9}};
+    for (int[] shape : shapes) {
+      for (int numThreads : threadCounts) {
+        boolean allMatched = true;
+        for (int trial = 0; trial < trials; trial++) {
+          double[][] x = generateRandomMatrix(shape[0], shape[1]);
+          double[][] y = generateRandomMatrix(shape[1], shape[2]);
+          double[][] parallel = parallelMultiplyMatrix(x, y, numThreads);
+          if (!matricesEqual(parallel, sequentialMultiplyMatrix(x, y))) {
+            allMatched = false;
+          }
+        }
+        printResult("Parallel == sequential, " + shape[0] + "x" + shape[1] + " * "
+            + shape[1] + "x" + shape[2] + ", " + numThreads + " threads, " + trials
+            + " trials", allMatched);
+      }
+    }
   }
 
   /**
