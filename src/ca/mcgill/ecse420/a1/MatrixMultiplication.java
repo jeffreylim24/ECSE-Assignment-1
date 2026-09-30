@@ -177,17 +177,17 @@ public class MatrixMultiplication {
     double[][] a = {{1, 2, 3}, {4, 5, 6}};
     double[][] b = {{7, 8}, {9, 10}, {11, 12}};
     double[][] expected = {{58, 64}, {139, 154}};
-    printResult("Hand-computed 2x3 * 3x2", matricesEqual(sequentialMultiplyMatrix(a, b), expected));
+    printResult("Sequential: hand-computed 2x3 * 3x2", matricesEqual(sequentialMultiplyMatrix(a, b), expected));
 
     // Case 2: multiplying by the identity matrix must return the original matrix
     double[][] random = generateRandomMatrix(50, 50);
     double[][] identity = generateIdentityMatrix(50);
-    printResult("A * I = A", matricesEqual(sequentialMultiplyMatrix(random, identity), random));
-    printResult("I * A = A", matricesEqual(sequentialMultiplyMatrix(identity, random), random));
+    printResult("Sequential: A * I = A", matricesEqual(sequentialMultiplyMatrix(random, identity), random));
+    printResult("Sequential: I * A = A", matricesEqual(sequentialMultiplyMatrix(identity, random), random));
 
     // Case 3: multiplying by the zero matrix must return the zero matrix
     double[][] zero = new double[50][50];
-    printResult("A * 0 = 0", matricesEqual(sequentialMultiplyMatrix(random, zero), zero));
+    printResult("Sequential: A * 0 = 0", matricesEqual(sequentialMultiplyMatrix(random, zero), zero));
 
     // Case 4: incompatible dimensions must be rejected
     boolean threw = false;
@@ -196,7 +196,7 @@ public class MatrixMultiplication {
     } catch (IllegalArgumentException e) {
       threw = true;
     }
-    printResult("Rejects 2x3 * 2x3", threw);
+    printResult("Sequential: rejects 2x3 * 2x3", threw);
   }
 
   /**
