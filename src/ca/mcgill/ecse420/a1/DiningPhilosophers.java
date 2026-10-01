@@ -42,10 +42,14 @@ public class DiningPhilosophers {
     }
     if (args.length > 1) {
       maxReachMs = Integer.parseInt(args[1]);
+      if (maxReachMs < 0) {
+        throw new IllegalArgumentException("maxReachMs must be non-negative");
+      }
     }
 
     Philosopher[] philosophers = new Philosopher[numberOfPhilosophers];
     Chopstick[] chopsticks = new Chopstick[numberOfPhilosophers];
+
     for (int i = 0; i < numberOfPhilosophers; i++) {
       chopsticks[i] = new Chopstick(i);
     }
