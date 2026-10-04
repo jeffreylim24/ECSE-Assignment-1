@@ -75,9 +75,11 @@ public class DiningPhilosophersNoDeadlock {
       executor.execute(philosopher);
     }
 
-    // Runs until the user stops the program. Each line shows the meals eaten by each
-    // philosopher since the previous line. A deadlock would show up as a line of all zeros,
-    // and a starving philosopher as a column that stays at zero while the others keep eating.
+    // Runs until the user stops the program. Each line shows how many meals each philosopher
+    // completed since the previous line. The counts are evidence, not proof: a line of all
+    // zeros, or a column that stays at zero while others eat, is a warning sign to
+    // investigate, but a finite run cannot tell a long wait apart from waiting forever.
+    // Deadlock and starvation freedom follow from the ordering and fairness argument.
     int[] mealsAtLastPrint = new int[numberOfPhilosophers];
     while (true) {
       Thread.sleep(PRINT_MS);
